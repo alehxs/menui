@@ -2,3 +2,19 @@
 .vscode/
 .vscode/
 Menui/ToBeDeleted/
+# Xcode
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.xcworkspace/xcshareddata/
+
+# Build
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Misc
+.DS_Store
+*.swp
+supabase/
