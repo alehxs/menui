@@ -26,7 +26,7 @@ class OCRService {
                     return
                 }
                 
-                let centerObservations = observations.filter { obs in
+                _ = observations.filter { obs in
                     let box = obs.boundingBox
                     let centerX = box.midX
                     let centerY = box.midY

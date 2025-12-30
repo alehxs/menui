@@ -11,7 +11,7 @@ import SwiftUI
 struct MenuiApp: App {
     var body: some Scene {
         WindowGroup {
-            LandingView()
+            MainTabView()
         }
     }
 }

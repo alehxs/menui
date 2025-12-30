@@ -11,10 +11,17 @@ import Foundation
 
 class DishParserService {
     private let skipPatterns = [
-        "appetizer", "entree", "dessert", "beverage", "drink",
-        "side", "grilled", "finished", "served", "consuming",
-        "raw", "undercooked", "may increase"
-    ]
+            "appetizer", "entree", "dessert", "beverage", "drink", "side",
+            "main menu", "starters", "mains", "drinks",
+            
+            "grilled", "finished", "served", "roasted", "confit", "focaccia",
+            "braised", "sauteed", "fried", "baked", "steamed",
+            
+            "consuming", "raw", "undercooked", "may increase",
+            
+            "garlic", "tomato", "basil", "arugula"
+        ]
+
     
     /// Extracts dish names from raw OCR lines.
     /// - Parameter lines: Raw text lines from OCR.
@@ -34,17 +41,20 @@ class DishParserService {
                 return nil
             }
             
-            if trimmed.count > 50 { return nil }
+            if trimmed.count > 45 { return nil }
             
             if trimmed.contains("|") { return nil }
             
-            let withoutPrice = trimmed.replacingOccurrences(
-                of: #"\s*\$?\d+°?\s*$"#,
-                with: "",
-                options: .regularExpression
-            )
+            if trimmed.count < 4 && !trimmed.contains(" ") { return nil}
             
-            return withoutPrice.isEmpty ? nil : withoutPrice
+            let cleaned = trimmed
+            
+                .replacingOccurrences(of: #"\s*\*+/?\**\s*$"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"\s*½?\s*Dz\s*$"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"\s*\$?\d+°?\s*$"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespaces)
+            
+            return cleaned.isEmpty ? nil :cleaned
         }
     }
 }
