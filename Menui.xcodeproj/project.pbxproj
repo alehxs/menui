@@ -10,9 +10,22 @@
 		FA785F722EADC043004BC04B /* Menui.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Menui.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FA73955E2F11B56F00C51801 /* Exceptions for "Menui" folder in "Menui" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = FA785F712EADC043004BC04B /* Menui */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		FA785F742EADC043004BC04B /* Menui */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FA73955E2F11B56F00C51801 /* Exceptions for "Menui" folder in "Menui" target */,
+			);
 			path = Menui;
 			sourceTree = "<group>";
 		};
@@ -261,6 +274,7 @@
 				DEVELOPMENT_TEAM = 697T2LDMVY;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Menui/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We use the camera to scan restaurant menus.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -292,6 +306,7 @@
 				DEVELOPMENT_TEAM = 697T2LDMVY;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Menui/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We use the camera to scan restaurant menus.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

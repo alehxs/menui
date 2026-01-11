@@ -48,9 +48,11 @@ class DishParserService {
             if trimmed.count < 4 && !trimmed.contains(" ") { return nil}
             
             let cleaned = trimmed
-            
-                .replacingOccurrences(of: #"\s*\*+/?\**\s*$"#, with: "", options: .regularExpression)
+                // Remove asterisks, bullets, quotes, slashes at the end (menu markers)
+                .replacingOccurrences(of: #"[\s\*•·\"'/]+$"#, with: "", options: .regularExpression)
+                // Remove ½ Dz suffix (e.g., "Oysters Rockefeller ½ Dz")
                 .replacingOccurrences(of: #"\s*½?\s*Dz\s*$"#, with: "", options: .regularExpression)
+                // Remove prices at the end
                 .replacingOccurrences(of: #"\s*\$?\d+°?\s*$"#, with: "", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces)
             
