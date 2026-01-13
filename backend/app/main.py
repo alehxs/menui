@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
@@ -5,7 +6,13 @@ from typing import List, Optional
 import httpx
 import redis.asyncio as redis
 import json
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from app import config
+
+# Rate limiter - uses IP address to track requests
+limiter = Limiter(key_func=get_remote_address)
 
 # ============================================
 # 1. PYDANTIC MODELS (Data Validation)
@@ -50,8 +57,14 @@ class HealthResponse(BaseModel):
 app = FastAPI(
     title="Menui API",
     description="Fetch food images from Google Custom Search",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url=None if os.getenv("RENDER") else "/docs",
+    redoc_url=None if os.getenv("RENDER") else "/redoc",
 )
+
+# Rate limiter setup
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Middleware - allows iOS app to call this API
 app.add_middleware(
@@ -123,7 +136,7 @@ async def fetch_images_from_google(dish_name: str) -> List[str]:
         "cx": config.GOOGLE_SEARCH_ENGINE_ID,
         "q": query,
         "searchType": "image",
-        "num": config.IMAGES_PER_DISH,  # Number of results
+        "num": config.IMAGES_TO_FETCH,  # Fetch extra to filter bad sources
     }
 
     try:
@@ -132,12 +145,17 @@ async def fetch_images_from_google(dish_name: str) -> List[str]:
             response.raise_for_status()
             data = response.json()
 
-            # Extract image URLs from response
+            # Extract image URLs, filtering out blocked domains
             image_urls = []
             if "items" in data:
                 for item in data["items"]:
                     if "link" in item:
-                        image_urls.append(item["link"])
+                        link = item["link"]
+                        # Skip URLs from domains that block hotlinking
+                        if not any(domain in link for domain in config.BLOCKED_IMAGE_DOMAINS):
+                            image_urls.append(link)
+                            if len(image_urls) >= config.IMAGES_PER_DISH:
+                                break
 
             return image_urls
 
@@ -207,9 +225,13 @@ async def health_check():
 
 
 @app.post("/api/dishes/images", response_model=DishImagesResponse)
-async def get_dish_images(request: DishRequest):
+@limiter.limit(config.RATE_LIMIT)
+async def get_dish_images(request: Request, dish_request: DishRequest):
     """
     Main endpoint: Get images for a list of dishes
+
+    Security: Rate limited to 30 requests/minute per IP address.
+    No API key required - Google API credentials stay server-side only.
 
     Flow:
     1. For each dish, check Redis cache
@@ -219,7 +241,7 @@ async def get_dish_images(request: DishRequest):
     """
     results = []
 
-    for dish_name in request.dishes:
+    for dish_name in dish_request.dishes:
         # Try cache first
         cached_images = await get_cached_images(dish_name)
 
@@ -261,3 +283,26 @@ async def root():
         "docs": "/docs",
         "health": "/health"
     }
+
+
+@app.delete("/api/cache/clear")
+async def clear_cache():
+    """Clear all cached dish images from Redis"""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis not connected")
+
+    try:
+        # Find and delete all dish cache keys
+        cursor = 0
+        deleted_count = 0
+        while True:
+            cursor, keys = await redis_client.scan(cursor, match="dish:*", count=100)
+            if keys:
+                await redis_client.delete(*keys)
+                deleted_count += len(keys)
+            if cursor == 0:
+                break
+
+        return {"message": f"Cleared {deleted_count} cached dishes"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {e}")

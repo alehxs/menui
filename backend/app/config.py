@@ -21,5 +21,17 @@ MAX_DISH_NAME_LENGTH = 100
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
 # Search Configuration
-IMAGES_PER_DISH = 3  # Number of images to fetch per dish
+IMAGES_PER_DISH = 3  # Number of images to return per dish
+IMAGES_TO_FETCH = 10  # Fetch more from Google to filter out bad sources
 SEARCH_QUERY_SUFFIX = "food dish"  # Append to dish names for better results
+
+# Domains that block hotlinking / direct image access
+BLOCKED_IMAGE_DOMAINS = [
+    "instagram.com",
+    "lookaside.instagram.com",
+    "tiktok.com",
+    "pinterest.com",
+    "pinimg.com",
+    "facebook.com",
+    "fbcdn.net",
+]
