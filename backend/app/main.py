@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional
@@ -286,8 +286,11 @@ async def root():
 
 
 @app.delete("/api/cache/clear")
-async def clear_cache():
-    """Clear all cached dish images from Redis"""
+async def clear_cache(x_admin_secret: str = Header(...)):
+    """Clear all cached dish images from Redis. Requires admin secret."""
+    if not config.ADMIN_SECRET or x_admin_secret != config.ADMIN_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     if not redis_client:
         raise HTTPException(status_code=503, detail="Redis not connected")
 
