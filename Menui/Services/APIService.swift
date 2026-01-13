@@ -10,8 +10,7 @@ import Foundation
 class APIService {
     static let shared = APIService()
 
-    // TODO: Update to deployed URL (Railway/Fly.io)
-    private let baseURL = "http://192.168.1.211:8000"
+    private let baseURL = "https://menui-f9n2.onrender.com"
 
     private init() {}
 
