@@ -20,6 +20,9 @@ MAX_DISH_NAME_LENGTH = 100
 # CORS
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
+# Admin secret for maintenance endpoints (set in Render environment)
+ADMIN_SECRET = os.getenv("ADMIN_SECRET")
+
 # Search Configuration
 IMAGES_PER_DISH = 3  # Number of images to return per dish
 IMAGES_TO_FETCH = 10  # Fetch more from Google to filter out bad sources
