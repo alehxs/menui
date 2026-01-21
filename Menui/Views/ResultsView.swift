@@ -8,11 +8,13 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ResultsView: View {
     let image: UIImage
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var dishNames: [String] = []
     @State private var dishImages: [String: [String]] = [:]
     @State private var isProcessing = true
@@ -87,11 +89,42 @@ struct ResultsView: View {
         isFetchingImages = true
         do {
             dishImages = try await APIService.shared.fetchDishImages(for: dishNames)
+
+            // Step 3: Auto-save to history after successful image fetch
+            await saveScanSession()
         } catch {
             errorMessage = "Failed to load images"
             print("API Error: \(error)")
         }
         isFetchingImages = false
+    }
+
+    /// Saves the current scan to history
+    private func saveScanSession() async {
+        // Create dish models with their image URLs
+        let dishModels = dishNames.map { dishName in
+            Dish(name: dishName, imageURLs: dishImages[dishName] ?? [])
+        }
+
+        // Convert UIImage to Data for storage
+        let imageData = image.jpegData(compressionQuality: 0.7)
+
+        // Create and save session
+        let session = ScanSession(
+            timestamp: Date(),
+            restaurantName: nil,
+            dishes: dishModels,
+            originalImageData: imageData
+        )
+
+        modelContext.insert(session)
+
+        do {
+            try modelContext.save()
+            print("✓ Scan session saved to history")
+        } catch {
+            print("Failed to save scan session: \(error)")
+        }
     }
 }
 
@@ -111,28 +144,26 @@ struct DishRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(imageUrls, id: \.self) { urlString in
-                            AsyncImage(url: URL(string: urlString)) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                        .frame(width: 100, height: 100)
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 100, height: 100)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                case .failure:
-                                    Image(systemName: "photo")
-                                        .frame(width: 100, height: 100)
-                                        .background(Color.gray.opacity(0.2))
-                                        .cornerRadius(8)
-                                @unknown default:
-                                    EmptyView()
-                                }
+                HStack(spacing: 8) {
+                    ForEach(imageUrls.prefix(3), id: \.self) { urlString in
+                        AsyncImage(url: URL(string: urlString)) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(width: 100, height: 100)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 100, height: 100)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            case .failure:
+                                Image(systemName: "photo")
+                                    .frame(width: 100, height: 100)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(8)
+                            @unknown default:
+                                EmptyView()
                             }
                         }
                     }

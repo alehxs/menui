@@ -29,7 +29,7 @@ class DishParserService {
         "red ", "green ", "white ", "black ", "brown ",
         "beans ", "rice ", "cheese ", "sauce ", "cream ",
         "flour ", "corn ", "meat ", "chicken ", "beef ", "pork ",
-        "onions ", "tomatoes ", "peppers "
+        "onions ", "tomatoes ", "peppers ", "a flat", "a crispy"
     ]
 
     // Common descriptor/ingredient words that shouldn't dominate a dish name
@@ -37,6 +37,35 @@ class DishParserService {
         "topped", "with", "covered", "filled", "served", "choice",
         "sauce", "cheese", "beans", "rice", "lettuce", "cream",
         "onions", "tomatoes", "peppers", "meat", "ground", "shredded"
+    ]
+
+    // Single words that are never dish names (fragments from descriptions)
+    private let neverDishNames = [
+        "flour", "corn", "white", "red", "green", "black", "brown",
+        "soft", "hard", "crispy", "flat", "topped", "topp", "with",
+        "and", "or", "the", "a", "an", "flot", "flo", "greer", "chee",
+        "your", "choice", "jj", "si"
+    ]
+
+    // Common Mexican/Latin American dish names (allow lowercase and all-caps)
+    private let mexicanDishStarters = [
+        "taco", "tacos", "tamale", "tamales", "burrito", "burritos",
+        "enchilada", "enchiladas", "quesadilla", "quesadillas",
+        "torta", "tortas", "chilaquiles", "pozole", "menudo", "mole",
+        "carnitas", "al pastor", "carne asada", "barbacoa",
+        "fajita", "fajitas", "chimichanga", "chimichangas",
+        "tostada", "tostadas", "sope", "sopes", "gordita", "gorditas",
+        "huarache", "huaraches", "flautas", "chalupa", "chalupas",
+        "tostaguac", "chile relleno", "chile", "relleno"
+    ]
+
+    // Section headers to skip (all-caps only)
+    private let sectionHeaders = [
+        "appetizers", "appetizer", "entrees", "entree", "entrées",
+        "desserts", "dessert", "beverages", "beverage", "drinks",
+        "starters", "mains", "main menu", "sides", "salads",
+        "soups", "sandwiches", "breakfast", "lunch", "dinner",
+        "specials", "pick one", "choose one", "includes"
     ]
 
     
@@ -49,16 +78,24 @@ class DishParserService {
 
             guard trimmed.count > 2 else { return nil }
 
-            // Skip all-caps section headers (longer than 3 chars)
-            if trimmed == trimmed.uppercased() && trimmed.count > 3 {
-                return nil
-            }
-
             let lower = trimmed.lowercased()
 
+            // Skip all-caps section headers (but allow dish names)
+            if trimmed == trimmed.uppercased() && trimmed.count > 3 {
+                // Check if it's a known dish name
+                let isDishName = mexicanDishStarters.contains { lower.hasPrefix($0) || lower.contains($0) }
+                let isSectionHeader = sectionHeaders.contains { lower.contains($0) }
+
+                // Skip only if it's a section header, not a dish name
+                if isSectionHeader && !isDishName {
+                    return nil
+                }
+            }
+
             // Skip lines starting with lowercase (likely description fragments)
-            // Exception: very short lines might be legitimate (e.g., "al pastor")
-            if let firstChar = trimmed.first, firstChar.isLowercase && trimmed.count > 10 {
+            // Exception: very short lines or Mexican/Latin American dishes
+            let startsWithMexicanDish = mexicanDishStarters.contains { lower.hasPrefix($0) }
+            if let firstChar = trimmed.first, firstChar.isLowercase && trimmed.count > 10 && !startsWithMexicanDish {
                 return nil
             }
 
@@ -72,8 +109,13 @@ class DishParserService {
                 return nil
             }
 
-            // Skip lines with too many descriptor words (likely descriptions)
+            // Skip single-word fragments that are never dish names
             let words = lower.split(separator: " ")
+            if words.count == 1 && neverDishNames.contains(String(words[0])) {
+                return nil
+            }
+
+            // Skip lines with too many descriptor words (likely descriptions)
             let descriptorCount = words.filter { word in
                 commonDescriptors.contains(String(word))
             }.count
