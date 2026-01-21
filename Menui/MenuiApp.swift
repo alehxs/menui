@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct MenuiApp: App {
@@ -13,5 +14,6 @@ struct MenuiApp: App {
         WindowGroup {
             MainTabView()
         }
+        .modelContainer(for: [ScanSession.self, Dish.self])
     }
 }

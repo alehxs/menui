@@ -1,4 +1,5 @@
 import os
+import asyncio
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
@@ -13,6 +14,9 @@ from app import config
 
 # Rate limiter - uses IP address to track requests
 limiter = Limiter(key_func=get_remote_address)
+
+# Semaphore to limit concurrent Google API calls
+google_api_semaphore = asyncio.Semaphore(config.MAX_CONCURRENT_GOOGLE_CALLS)
 
 # ============================================
 # 1. PYDANTIC MODELS (Data Validation)
@@ -200,6 +204,36 @@ async def cache_images(dish_name: str, image_urls: List[str]):
         print(f"⚠️ Cache write error: {e}")
 
 
+async def fetch_and_cache_with_semaphore(
+    dish_name: str,
+    idx: int,
+    results_dict: dict
+):
+    """
+    Fetch dish images from Google with concurrency limiting, then cache.
+
+    Args:
+        dish_name: Name of dish to fetch
+        idx: Original index in request (for order preservation)
+        results_dict: Shared dict to store results by index
+    """
+    async with google_api_semaphore:
+        try:
+            # Fetch from Google API
+            image_urls = await fetch_images_from_google(dish_name)
+
+            # Cache asynchronously (fire-and-forget, don't block response)
+            asyncio.create_task(cache_images(dish_name, image_urls))
+
+            # Store result with original index
+            results_dict[idx] = image_urls
+
+        except Exception as e:
+            # Log error but don't fail - return empty array for this dish
+            print(f"❌ Error fetching images for '{dish_name}': {e}")
+            results_dict[idx] = []
+
+
 # ============================================
 # 6. API ENDPOINTS
 # ============================================
@@ -228,37 +262,54 @@ async def health_check():
 @limiter.limit(config.RATE_LIMIT)
 async def get_dish_images(request: Request, dish_request: DishRequest):
     """
-    Main endpoint: Get images for a list of dishes
+    Main endpoint: Get images for a list of dishes with parallel processing
 
     Security: Rate limited to 30 requests/minute per IP address.
-    No API key required - Google API credentials stay server-side only.
 
     Flow:
-    1. For each dish, check Redis cache
-    2. If not cached, fetch from Google Custom Search API
-    3. Cache the results
-    4. Return all images
+    1. Check Redis cache for all dishes in parallel
+    2. Fetch uncached dishes from Google in parallel (with concurrency limit)
+    3. Cache results asynchronously
+    4. Return all images in original order
     """
+
+    # Phase 1: Parallel cache lookups
+    cache_tasks = [
+        get_cached_images(dish_name)
+        for dish_name in dish_request.dishes
+    ]
+    cached_results = await asyncio.gather(*cache_tasks)
+
+    # Identify cache misses with their original indices
+    uncached_dishes = [
+        (idx, dish_name)
+        for idx, (dish_name, cached) in enumerate(zip(dish_request.dishes, cached_results))
+        if cached is None
+    ]
+
+    # Phase 2: Parallel Google API calls for uncached dishes
+    google_results = {}
+    if uncached_dishes:
+        # Use TaskGroup for better error handling (Python 3.11+)
+        async with asyncio.TaskGroup() as tg:
+            for idx, dish_name in uncached_dishes:
+                tg.create_task(
+                    fetch_and_cache_with_semaphore(dish_name, idx, google_results)
+                )
+
+    # Phase 3: Build ordered results
     results = []
-
-    for dish_name in dish_request.dishes:
-        # Try cache first
-        cached_images = await get_cached_images(dish_name)
-
-        if cached_images is not None:
-            # Cache hit!
+    for idx, dish_name in enumerate(dish_request.dishes):
+        if cached_results[idx] is not None:
+            # Cache hit
             results.append(ImageResult(
                 dish_name=dish_name,
-                image_urls=cached_images,
+                image_urls=cached_results[idx],
                 from_cache=True
             ))
         else:
-            # Cache miss - fetch from Google
-            image_urls = await fetch_images_from_google(dish_name)
-
-            # Cache the result for next time
-            await cache_images(dish_name, image_urls)
-
+            # From Google API (or empty if failed)
+            image_urls = google_results.get(idx, [])
             results.append(ImageResult(
                 dish_name=dish_name,
                 image_urls=image_urls,

@@ -38,3 +38,7 @@ BLOCKED_IMAGE_DOMAINS = [
     "facebook.com",
     "fbcdn.net",
 ]
+
+# Parallelization Configuration
+MAX_CONCURRENT_GOOGLE_CALLS = int(os.getenv("MAX_CONCURRENT_GOOGLE_CALLS", "10"))
+ENABLE_PARALLEL_FETCHING = os.getenv("ENABLE_PARALLEL_FETCHING", "true").lower() == "true"
