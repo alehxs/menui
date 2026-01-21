@@ -16,7 +16,7 @@ struct MainTabView: View {
                     Text("Scan")
                 }
 
-            PlaceholderView(title: "History")
+            HistoryView()
                 .tabItem {
                     Image(systemName: "clock")
                     Text("History")
