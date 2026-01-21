@@ -103,12 +103,13 @@ struct SessionRow: View {
                     ForEach(session.dishes.prefix(2), id: \.name) { dish in
                         Text(dish.name)
                             .font(.caption2)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
                             .background(
                                 Capsule()
-                                    .fill(Color.primary.opacity(0.8))
+                                    .fill(Color(uiColor: .tertiarySystemFill))
                             )
                             .lineLimit(1)
                     }
