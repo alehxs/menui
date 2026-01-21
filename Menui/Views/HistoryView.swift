@@ -216,6 +216,6 @@ extension ScanSession {
     container.mainContext.insert(session2)
     container.mainContext.insert(session3)
 
-    HistoryView()
+    return HistoryView()
         .modelContainer(container)
 }
