@@ -28,16 +28,30 @@ class CameraManager: NSObject, ObservableObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
 
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+        // Try to get dual camera or wide angle camera (supports lower zoom on newer devices)
+        var device: AVCaptureDevice?
+
+        // First try to get dual camera (iPhone with multiple cameras)
+        if let dualCamera = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
+            device = dualCamera
+            print("Using dual camera - zoom range: \(dualCamera.minAvailableVideoZoomFactor)-\(dualCamera.maxAvailableVideoZoomFactor)")
+        }
+        // Fallback to wide angle camera
+        else if let wideCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
+            device = wideCamera
+            print("Using wide angle camera - zoom range: \(wideCamera.minAvailableVideoZoomFactor)-\(wideCamera.maxAvailableVideoZoomFactor)")
+        }
+
+        guard let captureDevice = device else {
             print("No back camera found")
             return
         }
 
         // Store device reference for zoom and flash control
-        self.videoDevice = device
+        self.videoDevice = captureDevice
 
         do {
-            let input = try AVCaptureDeviceInput(device: device)
+            let input = try AVCaptureDeviceInput(device: captureDevice)
             if session.canAddInput(input) {
                 session.addInput(input)
             }
@@ -85,14 +99,21 @@ class CameraManager: NSObject, ObservableObject {
 
         do {
             try device.lockForConfiguration()
-            let clampedFactor = min(max(factor, device.minAvailableVideoZoomFactor),
-                                    device.maxAvailableVideoZoomFactor)
+
+            // Clamp to device's actual capabilities
+            let minZoom = device.minAvailableVideoZoomFactor
+            let maxZoom = device.maxAvailableVideoZoomFactor
+            let clampedFactor = min(max(factor, minZoom), maxZoom)
+
             device.videoZoomFactor = clampedFactor
             device.unlockForConfiguration()
 
             DispatchQueue.main.async {
                 self.currentZoomFactor = clampedFactor
             }
+
+            // Debug log for troubleshooting
+            print("Requested zoom: \(factor), Applied zoom: \(clampedFactor), Device range: \(minZoom)-\(maxZoom)")
         } catch {
             print("Error setting zoom: \(error)")
         }

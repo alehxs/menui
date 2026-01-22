@@ -12,7 +12,7 @@ struct ZoomDialControl: View {
     let onZoomChange: (CGFloat) -> Void
 
     // Preset zoom levels
-    let presets: [CGFloat] = [0.5, 1.0, 3.0]
+    let presets: [CGFloat] = [0.5, 1.0]
 
     // State management
     @State private var showingDial = false
