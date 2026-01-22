@@ -30,10 +30,13 @@ struct HistoryView: View {
                 } else {
                     // Timeline of scans
                     List(sessions) { session in
-                        SessionRow(session: session)
-                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
+                        NavigationLink(destination: SessionDetailView(session: session)) {
+                            SessionRow(session: session)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                     }
                     .listStyle(.plain)
                 }
