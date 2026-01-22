@@ -30,10 +30,14 @@ struct HistoryView: View {
                 } else {
                     // Timeline of scans
                     List(sessions) { session in
-                        NavigationLink(destination: SessionDetailView(session: session)) {
+                        ZStack {
+                            NavigationLink(destination: SessionDetailView(session: session)) {
+                                EmptyView()
+                            }
+                            .opacity(0)
+
                             SessionRow(session: session)
                         }
-                        .buttonStyle(PlainButtonStyle())
                         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
