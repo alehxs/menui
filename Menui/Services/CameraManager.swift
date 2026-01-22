@@ -28,27 +28,46 @@ class CameraManager: NSObject, ObservableObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
 
-        // Try to get dual camera or wide angle camera (supports lower zoom on newer devices)
+        // Try to get a camera device that supports ultra-wide zoom (< 1.0x)
         var device: AVCaptureDevice?
 
-        // First try to get dual camera (iPhone with multiple cameras)
-        if let dualCamera = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
-            device = dualCamera
-            print("Using dual camera - zoom range: \(dualCamera.minAvailableVideoZoomFactor)-\(dualCamera.maxAvailableVideoZoomFactor)")
+        // Priority order for devices that support 0.5x zoom:
+        // 1. Triple camera (iPhone 11 Pro+) - supports ultra-wide, wide, telephoto
+        if let tripleCamera = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: .back) {
+            device = tripleCamera
+            print("✓ Using triple camera - zoom range: \(tripleCamera.minAvailableVideoZoomFactor)x - \(tripleCamera.maxAvailableVideoZoomFactor)x")
         }
-        // Fallback to wide angle camera
+        // 2. Dual wide camera (iPhone 11+) - supports ultra-wide + wide
+        else if let dualWideCamera = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
+            device = dualWideCamera
+            print("✓ Using dual wide camera - zoom range: \(dualWideCamera.minAvailableVideoZoomFactor)x - \(dualWideCamera.maxAvailableVideoZoomFactor)x")
+        }
+        // 3. Dual camera (older devices with wide + telephoto)
+        else if let dualCamera = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
+            device = dualCamera
+            print("✓ Using dual camera - zoom range: \(dualCamera.minAvailableVideoZoomFactor)x - \(dualCamera.maxAvailableVideoZoomFactor)x")
+        }
+        // 4. Fallback to standard wide angle camera (may not support < 1.0x zoom)
         else if let wideCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
             device = wideCamera
-            print("Using wide angle camera - zoom range: \(wideCamera.minAvailableVideoZoomFactor)-\(wideCamera.maxAvailableVideoZoomFactor)")
+            print("⚠️ Using wide angle camera - zoom range: \(wideCamera.minAvailableVideoZoomFactor)x - \(wideCamera.maxAvailableVideoZoomFactor)x")
+            print("⚠️ This device may not support 0.5x zoom")
         }
 
         guard let captureDevice = device else {
-            print("No back camera found")
+            print("❌ No back camera found")
             return
         }
 
         // Store device reference for zoom and flash control
         self.videoDevice = captureDevice
+
+        // Log detailed camera capabilities
+        print("Camera capabilities:")
+        print("  - Min zoom: \(captureDevice.minAvailableVideoZoomFactor)x")
+        print("  - Max zoom: \(captureDevice.maxAvailableVideoZoomFactor)x")
+        print("  - Has flash: \(captureDevice.hasFlash)")
+        print("  - Has torch: \(captureDevice.hasTorch)")
 
         do {
             let input = try AVCaptureDeviceInput(device: captureDevice)
@@ -56,7 +75,7 @@ class CameraManager: NSObject, ObservableObject {
                 session.addInput(input)
             }
         } catch {
-            print("Error setting up camera input: \(error)")
+            print("❌ Error setting up camera input: \(error)")
             return
         }
 
@@ -65,12 +84,33 @@ class CameraManager: NSObject, ObservableObject {
         }
 
         session.commitConfiguration()
+
+        // Set initial zoom to 1.0x
+        do {
+            try captureDevice.lockForConfiguration()
+            if captureDevice.minAvailableVideoZoomFactor <= 1.0 && captureDevice.maxAvailableVideoZoomFactor >= 1.0 {
+                captureDevice.videoZoomFactor = 1.0
+                DispatchQueue.main.async {
+                    self.currentZoomFactor = 1.0
+                }
+                print("✓ Initial zoom set to 1.0x")
+            }
+            captureDevice.unlockForConfiguration()
+        } catch {
+            print("⚠️ Could not set initial zoom: \(error)")
+        }
     }
     
     func startSession() {
         DispatchQueue.global(qos: .userInitiated).async {
             if !self.session.isRunning {
                 self.session.startRunning()
+                print("📹 Camera session started")
+
+                // Log initial zoom level
+                if let device = self.videoDevice {
+                    print("📹 Initial zoom: \(device.videoZoomFactor)x")
+                }
             }
         }
     }
@@ -95,7 +135,10 @@ class CameraManager: NSObject, ObservableObject {
     }
 
     func setZoom(_ factor: CGFloat) {
-        guard let device = videoDevice else { return }
+        guard let device = videoDevice else {
+            print("❌ Cannot set zoom: no video device")
+            return
+        }
 
         do {
             try device.lockForConfiguration()
@@ -113,9 +156,13 @@ class CameraManager: NSObject, ObservableObject {
             }
 
             // Debug log for troubleshooting
-            print("Requested zoom: \(factor), Applied zoom: \(clampedFactor), Device range: \(minZoom)-\(maxZoom)")
+            if factor != clampedFactor {
+                print("⚠️ Zoom adjusted: requested \(factor)x → applied \(clampedFactor)x (device range: \(minZoom)x-\(maxZoom)x)")
+            } else {
+                print("✓ Zoom set to \(clampedFactor)x")
+            }
         } catch {
-            print("Error setting zoom: \(error)")
+            print("❌ Error setting zoom: \(error)")
         }
     }
 

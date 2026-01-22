@@ -177,6 +177,7 @@ struct ZoomDialControl: View {
 
         // If it was a tap (short distance, not in dial mode)
         if dragDistance < dragThreshold && !showingDial {
+            print("🎯 Zoom preset tapped: \(preset)x")
             onZoomChange(preset)
         }
 
