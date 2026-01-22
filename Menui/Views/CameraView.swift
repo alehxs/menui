@@ -14,9 +14,6 @@ struct CameraView: View {
     @State private var capturedImage: UIImage?
     @State private var showingResults = false
 
-    // Available zoom levels (like native camera)
-    let zoomLevels: [CGFloat] = [0.5, 1.0, 2.0, 3.0]
-
     var body: some View {
         ZStack {
             // Black background
@@ -40,8 +37,11 @@ struct CameraView: View {
                             .font(.title2)
                             .foregroundColor(cameraManager.isFlashEnabled ? .yellow : .white)
                             .padding()
-                            .background(Color.black.opacity(0.5))
-                            .clipShape(Circle())
+                            .background(
+                                Circle()
+                                    .fill(Color.black.opacity(0.6))
+                                    .shadow(color: .black.opacity(0.3), radius: 4)
+                            )
                     }
                     .padding(.top, 50)
                     .padding(.trailing, 20)
@@ -55,26 +55,14 @@ struct CameraView: View {
             VStack {
                 Spacer()
 
-                // Zoom buttons (native-style)
+                // Zoom control (hybrid gesture: tap for presets, drag for dial)
                 if capturedImage == nil {
-                    HStack(spacing: 15) {
-                        ForEach(zoomLevels, id: \.self) { level in
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    cameraManager.setZoom(level)
-                                }
-                            } label: {
-                                Text(level == 0.5 ? ".5×" : level == 1.0 ? "1×" : level == 2.0 ? "2×" : "3×")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(abs(cameraManager.currentZoomFactor - level) < 0.1 ? .yellow : .white)
-                                    .frame(width: 45, height: 32)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(abs(cameraManager.currentZoomFactor - level) < 0.1 ? Color.white.opacity(0.3) : Color.clear)
-                                    )
-                            }
+                    ZoomDialControl(
+                        currentZoom: $cameraManager.currentZoomFactor,
+                        onZoomChange: { newZoom in
+                            cameraManager.setZoom(newZoom)
                         }
-                    }
+                    )
                     .padding(.bottom, 20)
                 }
 
