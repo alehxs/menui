@@ -200,28 +200,30 @@ extension ScanSession {
 }
 
 #Preview {
-    let container = try! ModelContainer(for: ScanSession.self, Dish.self)
+    @Previewable @State var container = try! ModelContainer(for: ScanSession.self, Dish.self)
 
-    // Add preview data
-    let session1 = ScanSession.previewSession(
-        restaurantName: "Taco Bell",
-        dishNames: ["Crunchy Taco", "Burrito Supreme", "Nachos"],
-        hoursAgo: 0
-    )
-    let session2 = ScanSession.previewSession(
-        restaurantName: nil,
-        dishNames: ["Pad Thai", "Green Curry", "Spring Rolls", "Tom Yum Soup"],
-        hoursAgo: 5
-    )
-    let session3 = ScanSession.previewSession(
-        restaurantName: "The Italian Place",
-        dishNames: ["Margherita Pizza", "Carbonara"],
-        hoursAgo: 72
-    )
+    let _ = {
+        // Add preview data
+        let session1 = ScanSession.previewSession(
+            restaurantName: "Taco Bell",
+            dishNames: ["Crunchy Taco", "Burrito Supreme", "Nachos"],
+            hoursAgo: 0
+        )
+        let session2 = ScanSession.previewSession(
+            restaurantName: nil,
+            dishNames: ["Pad Thai", "Green Curry", "Spring Rolls", "Tom Yum Soup"],
+            hoursAgo: 5
+        )
+        let session3 = ScanSession.previewSession(
+            restaurantName: "The Italian Place",
+            dishNames: ["Margherita Pizza", "Carbonara"],
+            hoursAgo: 72
+        )
 
-    container.mainContext.insert(session1)
-    container.mainContext.insert(session2)
-    container.mainContext.insert(session3)
+        container.mainContext.insert(session1)
+        container.mainContext.insert(session2)
+        container.mainContext.insert(session3)
+    }()
 
     HistoryView()
         .modelContainer(container)
