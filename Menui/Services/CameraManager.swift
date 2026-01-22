@@ -28,49 +28,60 @@ class CameraManager: NSObject, ObservableObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
 
-        // Try to get a camera device that supports ultra-wide zoom (< 1.0x)
-        var device: AVCaptureDevice?
-
-        // Priority order for devices that support 0.5x zoom:
-        // 1. Triple camera (iPhone 11 Pro+) - supports ultra-wide, wide, telephoto
-        if let tripleCamera = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: .back) {
-            device = tripleCamera
-            print("✓ Using triple camera - zoom range: \(tripleCamera.minAvailableVideoZoomFactor)x - \(tripleCamera.maxAvailableVideoZoomFactor)x")
-        }
-        // 2. Dual wide camera (iPhone 11+) - supports ultra-wide + wide
-        else if let dualWideCamera = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
-            device = dualWideCamera
-            print("✓ Using dual wide camera - zoom range: \(dualWideCamera.minAvailableVideoZoomFactor)x - \(dualWideCamera.maxAvailableVideoZoomFactor)x")
-        }
-        // 3. Dual camera (older devices with wide + telephoto)
-        else if let dualCamera = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
-            device = dualCamera
-            print("✓ Using dual camera - zoom range: \(dualCamera.minAvailableVideoZoomFactor)x - \(dualCamera.maxAvailableVideoZoomFactor)x")
-        }
-        // 4. Fallback to standard wide angle camera (may not support < 1.0x zoom)
-        else if let wideCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
-            device = wideCamera
-            print("⚠️ Using wide angle camera - zoom range: \(wideCamera.minAvailableVideoZoomFactor)x - \(wideCamera.maxAvailableVideoZoomFactor)x")
-            print("⚠️ This device may not support 0.5x zoom")
-        }
-
-        guard let captureDevice = device else {
-            print("❌ No back camera found")
+        // Use system-preferred device (works best for ultra-wide on iPhone 15 Pro)
+        // This virtual device automatically handles switching between physical cameras
+        guard let device = AVCaptureDevice.default(for: .video) else {
+            print("❌ No video device available")
             return
         }
 
         // Store device reference for zoom and flash control
-        self.videoDevice = captureDevice
+        self.videoDevice = device
 
         // Log detailed camera capabilities
+        print("✓ Using system video device")
         print("Camera capabilities:")
-        print("  - Min zoom: \(captureDevice.minAvailableVideoZoomFactor)x")
-        print("  - Max zoom: \(captureDevice.maxAvailableVideoZoomFactor)x")
-        print("  - Has flash: \(captureDevice.hasFlash)")
-        print("  - Has torch: \(captureDevice.hasTorch)")
+        print("  - Device type: \(device.deviceType.rawValue)")
+        print("  - Min zoom: \(device.minAvailableVideoZoomFactor)x")
+        print("  - Max zoom: \(device.maxAvailableVideoZoomFactor)x")
+        print("  - Virtual device: \(device.isVirtualDevice)")
+        print("  - Has flash: \(device.hasFlash)")
+        print("  - Has torch: \(device.hasTorch)")
+
+        // If this device doesn't support ultra-wide, try discovery session
+        if device.minAvailableVideoZoomFactor > 0.5 {
+            print("⚠️ Primary device doesn't support 0.5x, trying discovery session...")
+
+            let discoverySession = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [
+                    .builtInTripleCamera,
+                    .builtInDualWideCamera,
+                    .builtInDualCamera,
+                    .builtInWideAngleCamera,
+                    .builtInUltraWideCamera
+                ],
+                mediaType: .video,
+                position: .back
+            )
+
+            // Find a device that supports zoom < 1.0
+            if let ultraWideDevice = discoverySession.devices.first(where: { $0.minAvailableVideoZoomFactor <= 0.5 }) {
+                self.videoDevice = ultraWideDevice
+                print("✓ Found ultra-wide capable device: \(ultraWideDevice.deviceType.rawValue)")
+                print("  - Min zoom: \(ultraWideDevice.minAvailableVideoZoomFactor)x")
+                print("  - Max zoom: \(ultraWideDevice.maxAvailableVideoZoomFactor)x")
+            } else {
+                print("⚠️ No ultra-wide device found, 0.5x zoom may not be available")
+            }
+        }
+
+        guard let finalDevice = self.videoDevice else {
+            print("❌ No camera device available")
+            return
+        }
 
         do {
-            let input = try AVCaptureDeviceInput(device: captureDevice)
+            let input = try AVCaptureDeviceInput(device: finalDevice)
             if session.canAddInput(input) {
                 session.addInput(input)
             }
@@ -87,15 +98,15 @@ class CameraManager: NSObject, ObservableObject {
 
         // Set initial zoom to 1.0x
         do {
-            try captureDevice.lockForConfiguration()
-            if captureDevice.minAvailableVideoZoomFactor <= 1.0 && captureDevice.maxAvailableVideoZoomFactor >= 1.0 {
-                captureDevice.videoZoomFactor = 1.0
+            try finalDevice.lockForConfiguration()
+            if finalDevice.minAvailableVideoZoomFactor <= 1.0 && finalDevice.maxAvailableVideoZoomFactor >= 1.0 {
+                finalDevice.videoZoomFactor = 1.0
                 DispatchQueue.main.async {
                     self.currentZoomFactor = 1.0
                 }
                 print("✓ Initial zoom set to 1.0x")
             }
-            captureDevice.unlockForConfiguration()
+            finalDevice.unlockForConfiguration()
         } catch {
             print("⚠️ Could not set initial zoom: \(error)")
         }
