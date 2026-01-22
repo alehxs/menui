@@ -25,32 +25,6 @@ struct CameraView: View {
                     .ignoresSafeArea()
             }
 
-            // Flash toggle button (top-right)
-            VStack {
-                HStack {
-                    Spacer()
-
-                    Button {
-                        cameraManager.toggleFlash()
-                    } label: {
-                        Image(systemName: cameraManager.isFlashEnabled ? "bolt.fill" : "bolt.slash.fill")
-                            .font(.title2)
-                            .foregroundColor(cameraManager.isFlashEnabled ? .yellow : .white)
-                            .padding()
-                            .background(
-                                Circle()
-                                    .fill(Color.black.opacity(0.6))
-                                    .shadow(color: .black.opacity(0.3), radius: 4)
-                            )
-                    }
-                    .padding(.top, 50)
-                    .padding(.trailing, 20)
-                    .opacity(capturedImage == nil ? 1 : 0)
-                }
-
-                Spacer()
-            }
-
             // Bottom controls
             VStack {
                 Spacer()
@@ -94,10 +68,20 @@ struct CameraView: View {
                             )
                     }
 
-                    // Empty space for balance (bottom right)
-                    Rectangle()
-                        .fill(.clear)
-                        .frame(width: 50, height: 50)
+                    // Flash toggle button (bottom right)
+                    Button {
+                        cameraManager.toggleFlash()
+                    } label: {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Image(systemName: cameraManager.isFlashEnabled ? "bolt.fill" : "bolt.slash.fill")
+                                    .foregroundColor(cameraManager.isFlashEnabled ? .yellow : .white)
+                                    .font(.title2)
+                            )
+                    }
+                    .opacity(capturedImage == nil ? 1 : 0)
                 }
                 .padding(.bottom, 50)
             }
