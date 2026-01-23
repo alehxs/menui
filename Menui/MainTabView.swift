@@ -21,25 +21,7 @@ struct MainTabView: View {
                     Image(systemName: "clock")
                     Text("History")
                 }
-
-            PlaceholderView(title: "Favorites")
-                .tabItem {
-                    Image(systemName: "heart")
-                    Text("Favorites")
-                }
         }
-    }
-}
-
-// MARK: - Placeholder View
-
-struct PlaceholderView: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(.largeTitle)
-            .foregroundColor(.secondary)
     }
 }
 
