@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ZoomDialControl: View {
     @Binding var currentZoom: CGFloat
+    let activeLens: CameraLens
     let onZoomChange: (CGFloat) -> Void
 
     // Preset zoom levels
@@ -21,6 +22,15 @@ struct ZoomDialControl: View {
     @State private var lastZoom: CGFloat = 1.0
 
     private let dragThreshold: CGFloat = 15
+
+    // Lens-specific zoom ranges
+    private var dialMinZoom: CGFloat {
+        activeLens == .ultraWide ? 0.5 : 1.0
+    }
+
+    private var dialMaxZoom: CGFloat {
+        activeLens == .ultraWide ? 1.0 : 5.0  // Ultra-wide restricted, wide allows up to 5x
+    }
 
     var body: some View {
         ZStack {
@@ -81,7 +91,7 @@ struct ZoomDialControl: View {
                 HStack(spacing: 3) {
                     ForEach(5...100, id: \.self) { tick in
                         let zoomValue = CGFloat(tick) / 10.0
-                        if zoomValue >= 0.5 && zoomValue <= 10.0 {
+                        if zoomValue >= dialMinZoom && zoomValue <= dialMaxZoom {
                             tickMark(for: zoomValue)
                         }
                     }
@@ -157,7 +167,7 @@ struct ZoomDialControl: View {
         if showingDial {
             let sensitivity: CGFloat = 0.015
             let delta = value.translation.width * sensitivity
-            let newZoom = max(0.5, min(10.0, lastZoom + delta))
+            let newZoom = max(dialMinZoom, min(dialMaxZoom, lastZoom + delta))
             onZoomChange(newZoom)
         }
     }
@@ -190,7 +200,7 @@ struct ZoomDialControl: View {
     func handleDialDrag(_ value: DragGesture.Value) {
         let sensitivity: CGFloat = 0.015
         let delta = value.translation.width * sensitivity
-        let newZoom = max(0.5, min(10.0, lastZoom + delta))
+        let newZoom = max(dialMinZoom, min(dialMaxZoom, lastZoom + delta))
         onZoomChange(newZoom)
     }
 

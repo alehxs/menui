@@ -33,6 +33,7 @@ struct CameraView: View {
                 if capturedImage == nil {
                     ZoomDialControl(
                         currentZoom: $cameraManager.currentZoomFactor,
+                        activeLens: cameraManager.activeLens,
                         onZoomChange: { newZoom in
                             cameraManager.setZoom(newZoom)
                         }
