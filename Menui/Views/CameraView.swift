@@ -2,7 +2,7 @@
 //  CameraView.swift
 //  Menui
 //
-//  Main camera screen with live preview, capture button, and photo library access.
+//  Main camera screen with live preview and native-style controls.
 //
 
 import SwiftUI
@@ -13,66 +13,77 @@ struct CameraView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var capturedImage: UIImage?
     @State private var showingResults = false
-    
+
     var body: some View {
         ZStack {
             // Black background
             Color.black.ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Show captured image or live preview
-                if let image = capturedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea(edges: .top)
-                } else {
-                    CameraPreview(session: cameraManager.session)
-                        .ignoresSafeArea(edges: .top)
+
+            // Live camera preview
+            if capturedImage == nil {
+                CameraPreview(session: cameraManager.session)
+                    .ignoresSafeArea()
+            }
+
+            // Bottom controls
+            VStack {
+                Spacer()
+
+                // Zoom control (hybrid gesture: tap for presets, drag for dial)
+                if capturedImage == nil {
+                    ZoomDialControl(
+                        currentZoom: $cameraManager.currentZoomFactor,
+                        onZoomChange: { newZoom in
+                            cameraManager.setZoom(newZoom)
+                        }
+                    )
+                    .padding(.bottom, 20)
                 }
-                
-                // Bottom control bar
-                ZStack {
-                    Color.black
-                    
-                    HStack {
-                        // Photo library button (bottom left)
-                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 50, height: 50)
-                                .overlay(
-                                    Image(systemName: "photo")
-                                        .foregroundColor(.white)
-                                )
-                        }
-                        
-                        Spacer()
-                        
-                        // Capture button (center)
-                        Button {
-                            cameraManager.capturePhoto()
-                        } label: {
-                            Circle()
-                                .strokeBorder(.white, lineWidth: 4)
-                                .frame(width: 70, height: 70)
-                                .overlay(
-                                    Circle()
-                                        .fill(.white)
-                                        .frame(width: 58, height: 58)
-                                )
-                        }
-                        
-                        Spacer()
-                        
-                        // Empty space to balance layout (bottom right)
-                        Rectangle()
-                            .fill(.clear)
+
+                // Main control bar
+                HStack(spacing: 80) {
+                    // Photo library button (bottom left)
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.3))
                             .frame(width: 50, height: 50)
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .foregroundColor(.white)
+                                    .font(.title2)
+                            )
                     }
-                    .padding(.horizontal, 30)
+
+                    // Capture button (center)
+                    Button {
+                        cameraManager.capturePhoto()
+                    } label: {
+                        Circle()
+                            .strokeBorder(.white, lineWidth: 4)
+                            .frame(width: 70, height: 70)
+                            .overlay(
+                                Circle()
+                                    .fill(.white)
+                                    .frame(width: 58, height: 58)
+                            )
+                    }
+
+                    // Flash toggle button (bottom right)
+                    Button {
+                        cameraManager.toggleFlash()
+                    } label: {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Image(systemName: cameraManager.isFlashEnabled ? "bolt.fill" : "bolt.slash.fill")
+                                    .foregroundColor(cameraManager.isFlashEnabled ? .yellow : .white)
+                                    .font(.title2)
+                            )
+                    }
+                    .opacity(capturedImage == nil ? 1 : 0)
                 }
-                .frame(height: 120)
+                .padding(.bottom, 50)
             }
         }
         .onAppear {
