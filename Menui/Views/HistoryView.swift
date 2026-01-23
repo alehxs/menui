@@ -10,6 +10,7 @@ import SwiftData
 
 struct HistoryView: View {
     @Query(sort: \ScanSession.timestamp, order: .reverse) private var sessions: [ScanSession]
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         NavigationView {
@@ -29,23 +30,47 @@ struct HistoryView: View {
                     }
                 } else {
                     // Timeline of scans
-                    List(sessions) { session in
-                        ZStack {
-                            NavigationLink(destination: SessionDetailView(session: session)) {
-                                EmptyView()
-                            }
-                            .opacity(0)
+                    List {
+                        ForEach(sessions) { session in
+                            ZStack {
+                                NavigationLink(destination: SessionDetailView(session: session)) {
+                                    EmptyView()
+                                }
+                                .opacity(0)
 
-                            SessionRow(session: session)
+                                SessionRow(session: session)
+                            }
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    deleteSession(session)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
                     }
                     .listStyle(.plain)
                 }
             }
             .navigationTitle("History")
+        }
+    }
+
+    // MARK: - Delete Action
+
+    private func deleteSession(_ session: ScanSession) {
+        withAnimation {
+            modelContext.delete(session)
+
+            do {
+                try modelContext.save()
+                print("✓ Scan session deleted from history")
+            } catch {
+                print("❌ Failed to delete scan session: \(error)")
+            }
         }
     }
 }
