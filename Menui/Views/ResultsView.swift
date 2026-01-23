@@ -25,35 +25,36 @@ struct ResultsView: View {
     private let parserService = DishParserService()
 
     var body: some View {
-        NavigationView {
-            VStack {
-                // Scanned image preview
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 150)
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-
-                // Loading or results
+        NavigationStack {
+            Group {
                 if isProcessing {
-                    Spacer()
-                    ProgressView("Scanning menu...")
-                    Spacer()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                        Text("Scanning menu...")
+                            .foregroundColor(.secondary)
+                    }
                 } else if isFetchingImages {
-                    Spacer()
-                    ProgressView("Fetching dish images...")
-                    Spacer()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                        Text("Fetching dish images...")
+                            .foregroundColor(.secondary)
+                    }
                 } else if let error = errorMessage {
-                    Spacer()
-                    Text(error)
-                        .foregroundColor(.secondary)
-                    Spacer()
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text(error)
+                            .foregroundColor(.secondary)
+                    }
                 } else if dishNames.isEmpty {
-                    Spacer()
-                    Text("No dishes found")
-                        .foregroundColor(.secondary)
-                    Spacer()
+                    VStack(spacing: 16) {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text("No dishes found")
+                            .foregroundColor(.secondary)
+                    }
                 } else {
                     List(dishNames, id: \.self) { dish in
                         DishRow(name: dish, imageUrls: dishImages[dish] ?? [])
@@ -61,8 +62,8 @@ struct ResultsView: View {
                     .listStyle(.plain)
                 }
             }
-            .navigationTitle("Results")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Dishes")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Close") {
@@ -135,41 +136,45 @@ struct DishRow: View {
     let imageUrls: [String]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(name)
-                .font(.headline)
-
-            if imageUrls.isEmpty {
-                Text("No images available")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                HStack(spacing: 8) {
-                    ForEach(imageUrls.prefix(3), id: \.self) { urlString in
-                        AsyncImage(url: URL(string: urlString)) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                                    .frame(width: 100, height: 100)
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 100, height: 100)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            case .failure:
-                                Image(systemName: "photo")
-                                    .frame(width: 100, height: 100)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(8)
-                            @unknown default:
-                                EmptyView()
-                            }
-                        }
-                    }
+        HStack(spacing: 12) {
+            // Thumbnail image (left side)
+            AsyncImage(url: URL(string: imageUrls.first ?? "")) { phase in
+                switch phase {
+                case .empty:
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 60, height: 60)
+                        .cornerRadius(8)
+                        .overlay(
+                            ProgressView()
+                        )
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 60, height: 60)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                case .failure:
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 60, height: 60)
+                        .cornerRadius(8)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(.gray)
+                        )
+                @unknown default:
+                    EmptyView()
                 }
             }
+
+            // Dish name (right side)
+            Text(name)
+                .font(.body)
+                .foregroundColor(.primary)
+
+            Spacer()
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
     }
 }
