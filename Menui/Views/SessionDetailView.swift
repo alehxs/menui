@@ -10,7 +10,11 @@ import SwiftData
 
 struct SessionDetailView: View {
     let session: ScanSession
+    @Environment(\.modelContext) private var modelContext
+
     @State private var selectedDishName: String?
+    @State private var showingRenameSheet = false
+    @State private var editedName: String = ""
 
     var body: some View {
         ScrollView {
@@ -81,6 +85,26 @@ struct SessionDetailView: View {
         }
         .navigationTitle(session.restaurantName ?? "Scan Details")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    editedName = session.restaurantName ?? ""
+                    showingRenameSheet = true
+                } label: {
+                    Label("Rename", systemImage: "pencil")
+                }
+            }
+        }
+        .sheet(isPresented: $showingRenameSheet) {
+            RenameSheet(
+                currentName: session.restaurantName ?? "",
+                editedName: $editedName,
+                onSave: {
+                    renameSession()
+                }
+            )
+            .presentationDetents([.height(200)])
+        }
         .sheet(item: Binding<DishWrapper?>(
             get: {
                 guard let name = selectedDishName,
@@ -102,6 +126,74 @@ struct SessionDetailView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: session.timestamp)
+    }
+
+    // MARK: - Rename Action
+
+    private func renameSession() {
+        let trimmedName = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Update the session name (empty string becomes nil)
+        session.restaurantName = trimmedName.isEmpty ? nil : trimmedName
+
+        do {
+            try modelContext.save()
+            print("✓ Session renamed to: \(session.restaurantName ?? "nil")")
+        } catch {
+            print("❌ Failed to rename session: \(error)")
+        }
+
+        showingRenameSheet = false
+    }
+}
+
+// MARK: - Rename Sheet
+
+struct RenameSheet: View {
+    let currentName: String
+    @Binding var editedName: String
+    let onSave: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isTextFieldFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                TextField("Restaurant name", text: $editedName)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($isTextFieldFocused)
+                    .padding(.horizontal)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        onSave()
+                        dismiss()
+                    }
+
+                Spacer()
+            }
+            .padding(.top, 20)
+            .navigationTitle("Rename Scan")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        onSave()
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .onAppear {
+                isTextFieldFocused = true
+            }
+        }
     }
 }
 
