@@ -19,7 +19,14 @@ class DishParserService {
 
             "consuming", "raw", "undercooked", "may increase",
 
-            "garlic", "tomato", "basil", "arugula"
+            "garlic", "tomato", "basil", "arugula",
+
+            // Browser UI patterns
+            "http", "www.", ".com", ".net", ".org",
+            "bookmark", "favorites", "tab", "browser",
+            "chrome", "safari", "firefox",
+            "search", "google", "address bar",
+            "zoom", "refresh", "reload", "print"
         ]
 
     // Common words that indicate a description fragment, not a dish name
@@ -73,7 +80,37 @@ class DishParserService {
     /// - Parameter lines: Raw text lines from OCR.
     /// - Returns: Filtered list of dish names only.
     func extractDishes(from lines: [String]) -> [String] {
-        return lines.compactMap { line in
+        // First pass: Filter out obvious browser/UI junk
+        let preFiltered = lines.filter { line in
+            let lower = line.lowercased()
+
+            // Skip browser tab-like patterns
+            if lower.contains("website") || lower.contains("jobs") ||
+               lower.contains("reddit") || lower.contains("r/") ||
+               lower.contains("font:") || lower.contains("startup") ||
+               lower.contains("dev.") || lower.contains("ubi ") {
+                print("🚫 Skipping browser tab: '\(line)'")
+                return false
+            }
+
+            // Skip time ranges (business hours)
+            if line.contains("AM") && line.contains("PM") && line.contains("-") {
+                print("🚫 Skipping hours: '\(line)'")
+                return false
+            }
+
+            // Skip day ranges (MONDAY TO FRIDAY)
+            let days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+            let hasDays = days.filter { lower.contains($0) }.count >= 2
+            if hasDays {
+                print("🚫 Skipping day range: '\(line)'")
+                return false
+            }
+
+            return true
+        }
+
+        return preFiltered.compactMap { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
 
             guard trimmed.count > 2 else { return nil }
@@ -150,5 +187,34 @@ class DishParserService {
 
             return cleaned.isEmpty ? nil : cleaned
         }
+        // Filter out dishes that don't meet backend validation (2-100 chars)
+        .filter { dish in
+            let length = dish.trimmingCharacters(in: .whitespaces).count
+            let lower = dish.lowercased()
+
+            // Length check
+            guard length >= 2 && length <= 100 else { return false }
+
+            // Skip lines that start with parentheses (descriptions)
+            if dish.hasPrefix("(") {
+                return false
+            }
+
+            // Skip lines with sauce descriptions
+            if lower.contains("sauce") && lower.contains(",") {
+                return false
+            }
+
+            // Skip cooking method descriptions
+            if lower.hasPrefix("beef and") || lower.hasPrefix("chicken is") ||
+               lower.hasPrefix("cooked with") {
+                return false
+            }
+
+            return true
+        }
+        // Limit to 20 items max (backend constraint)
+        .prefix(20)
+        .map { $0 }
     }
 }
