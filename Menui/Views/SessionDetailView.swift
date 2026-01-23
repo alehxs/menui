@@ -81,7 +81,7 @@ struct SessionDetailView: View {
         }
         .navigationTitle(session.restaurantName ?? "Scan Details")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: Binding(
+        .sheet(item: Binding<DishWrapper?>(
             get: {
                 guard let name = selectedDishName,
                       let dish = session.dishes.first(where: { $0.name == name }) else {
@@ -92,7 +92,7 @@ struct SessionDetailView: View {
             set: { newValue in
                 selectedDishName = newValue?.dish.name
             }
-        )) { wrapper in
+        )) { (wrapper: DishWrapper) in
             DishImageGallery(dish: wrapper.dish)
         }
     }
