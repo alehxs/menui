@@ -1,37 +1,103 @@
 # Menui
 
-iOS app that uses OCR to scan restaurant menus and displays food images for each dish
+iOS app that uses advanced OCR and spatial layout analysis to scan restaurant menus, parse menu structure, and display food images for each dish.
 
-**Tech Stack:** SwiftUI + FastAPI + Redis + Google Custom Search
+**Tech Stack:** SwiftUI + FastAPI + Redis + Google Custom Search + Apple Vision Framework
+
+---
+
+## What's New
+
+### Version 2.0 (Latest)
+
+**Major Features**:
+- 🎯 **Advanced MenuParser** - Spatial layout analysis understands menu structure
+- 💾 **Scan History** - Save and manage scans with SwiftData
+- ✏️ **Rename Sessions** - Organize scans with custom names
+- 🗑️ **Swipe-to-Delete** - Easy history management
+- 📱 **Native Camera UI** - Professional controls with zoom (.5x/1x) and flash
+- 📋 **JSON Export** - Export structured menu data
+- 🏷️ **Auto-Tagging** - Extract tags from dish descriptions
+
+**Algorithm Improvements**:
+- Multi-column menu detection
+- Price anchor strategy for accurate dish pairing
+- Burger stack grouping for descriptions
+- Section header detection
+- Modifier extraction (add-ons)
+
+**See**: [Recent Commits](#recent-commits) below for detailed changelog
 
 ---
 
 ## Features
 
-- 📸 Camera scanning with live preview
-- 🔍 On-device OCR using Apple Vision Framework
-- 🧠 Intelligent dish name extraction with filtering
-- 🖼️ Automatic food image fetching for detected dishes
-- ⚡ Redis caching for fast responses
-- 🔒 Privacy-first (all OCR processing on-device)
+### Menu Scanning & Parsing
+- 📸 **Native camera interface** with live preview, zoom controls (.5x/1x), and flash
+- 🔍 **On-device OCR** using Apple Vision Framework with bounding box detection
+- 🧠 **Spatial layout analysis** - Understands menu structure, not just text:
+  - Multi-column detection (handles 2-column menus with dotted lines)
+  - Centered minimalist layout support
+  - Boxed grid menu parsing
+- 📋 **Structured JSON export** with sections, items, descriptions, prices, and modifiers
+- 🏷️ **Automatic tag extraction** from dish descriptions
+
+### Scan Management
+- 💾 **Scan history** with SwiftData persistence
+- ✏️ **Rename sessions** to organize your scans
+- 🗑️ **Swipe-to-delete** unwanted scan history
+- 📱 **Session details view** with full menu structure
+
+### Privacy & Performance
+- 🔒 **Privacy-first** - All OCR processing on-device
+- ⚡ **Redis caching** for fast image lookup
+- 🚀 **No tracking** - No analytics, no user accounts, no data collection
+
+---
+
+## Recent Commits
+
+- **feat: add rename functionality to scan session details** - Users can now rename saved scans
+- **feat: complete scan details view implementation** - Full session detail view with menu structure
+- **feat: add swipe-to-delete in History tab** - Easy scan management
+- **refactor: remove Favorites tab** - Simplified to Scan + History tabs
+- **feat: revamp results view with NavigationStack** - Modern navigation patterns
+- **feat: implement native iOS camera interface** - Professional camera controls
+- **feat: add live camera preview with zoom and flash controls** - Enhanced user experience
+- **fix: properly detect ultra-wide camera** - Support for .5x zoom
+- **feat: hybrid gesture zoom control** - Tap-to-preset + drag-to-dial
 
 ---
 
 ## How It Works
 
 ```
-┌─────────────────────┐
-│   iOS App (SwiftUI) │
-└──────────┬──────────┘
+┌─────────────────────────┐
+│   iOS App (SwiftUI)     │
+└──────────┬──────────────┘
            │
-           ├─► 📸 Camera Capture (AVFoundation)
+           ├─► 📸 Native Camera UI (AVFoundation)
+           │   • Ultra-wide & wide lens support
+           │   • Zoom controls (.5x/1x)
+           │   • Flash control
            │
            ├─► 🔍 On-device OCR (Vision Framework)
+           │   • Text recognition with bounding boxes
+           │   • Spatial layout information
            │
-           ├─► 🧠 Dish Name Parsing & Filtering
+           ├─► 🧠 MenuParser - Spatial Layout Analysis
+           │   • Column detection (multi-column support)
+           │   • Price anchor strategy
+           │   • Burger stack grouping (name + description)
+           │   • Section header detection
+           │   • Structured JSON output
+           │
+           ├─► 💾 SwiftData Persistence
+           │   • Save scan history
+           │   • Session management
            │
            ▼
-    [POST /api/dishes/images]
+    [Optional: POST /api/dishes/images]
            │
 ┌──────────▼──────────┐
 │  FastAPI Backend    │
@@ -48,7 +114,8 @@ iOS app that uses OCR to scan restaurant menus and displays food images for each
            │
 ┌──────────▼──────────┐
 │   iOS App displays  │
-│   food images       │
+│   structured menu   │
+│   with food images  │
 └─────────────────────┘
 ```
 
@@ -58,9 +125,11 @@ iOS app that uses OCR to scan restaurant menus and displays food images for each
 
 ### iOS App
 - **SwiftUI** - Modern declarative UI framework
-- **AVFoundation** - Camera capture and preview
-- **Vision Framework** - On-device OCR (text recognition)
+- **SwiftData** - Native persistence for scan history
+- **AVFoundation** - Camera capture with ultra-wide & wide lens support
+- **Vision Framework** - On-device OCR with spatial layout (bounding boxes)
 - **URLSession** - Native HTTP client for API calls
+- **NavigationStack** - Modern navigation patterns
 - **No external dependencies** - 100% native iOS frameworks
 
 ### Backend
@@ -131,6 +200,31 @@ uvicorn app.main:app --reload
 # API will be available at http://localhost:8000
 # Interactive docs at http://localhost:8000/docs
 ```
+
+---
+
+## App Navigation
+
+Menui has a simple two-tab interface:
+
+### 📸 Scan Tab
+- **Native Camera Interface** with professional controls
+  - Ultra-wide (.5x) and wide (1x) lens switching
+  - Flash toggle (auto/on/off)
+  - Live preview with framing guide
+- **Instant Processing** - Tap capture to scan menu
+- **Structured Results** - View parsed menu with sections, items, and prices
+- **JSON Export** - Copy structured menu data
+
+### 🕐 History Tab
+- **All Saved Scans** - Browse previous menu scans
+- **Rename Sessions** - Tap session name to rename
+- **Swipe-to-Delete** - Remove unwanted scans
+- **Detail View** - See full menu structure with:
+  - Section organization
+  - Dish names and prices
+  - Descriptions and tags
+  - Modifiers and add-ons
 
 ---
 
@@ -302,19 +396,27 @@ ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
 Menui/
 ├── Menui/                      # iOS app source code
+│   ├── Models/                 # Data models
+│   │   ├── ScanSession.swift       # SwiftData model for scan history
+│   │   └── MenuModels.swift        # Menu parsing models (OCRBlock, MenuItem, etc.)
 │   ├── Services/               # Business logic layer
 │   │   ├── APIService.swift        # Backend API client
 │   │   ├── CameraManager.swift     # Camera capture manager
-│   │   ├── OCRService.swift        # Vision Framework OCR
-│   │   └── DishParserService.swift # Dish name extraction & filtering
+│   │   ├── OCRService.swift        # Vision Framework OCR with spatial layout
+│   │   ├── MenuParser.swift        # Spatial layout analysis engine
+│   │   └── DishParserService.swift # Legacy dish name extraction
 │   ├── Views/                  # SwiftUI views
-│   │   ├── CameraView.swift        # Main camera UI
+│   │   ├── CameraView.swift        # Native camera UI with zoom/flash
 │   │   ├── CameraPreview.swift     # Camera preview layer
-│   │   └── ResultsView.swift       # Image results display
+│   │   ├── CameraFrameGuide.swift  # Visual framing guide overlay
+│   │   ├── ResultsView.swift       # Image results display (legacy)
+│   │   ├── ResultsViewV2.swift     # Structured menu results with MenuParser
+│   │   ├── HistoryView.swift       # Scan history list with swipe-to-delete
+│   │   └── ScanSessionDetail.swift # Detailed view of saved scan
 │   ├── Assets.xcassets/        # App icons, images
 │   ├── Info.plist              # App configuration
-│   ├── MenuiApp.swift          # App entry point
-│   └── MainTabView.swift       # Tab-based navigation
+│   ├── MenuiApp.swift          # App entry point with SwiftData setup
+│   └── MainTabView.swift       # Tab navigation (Scan + History)
 │
 ├── backend/                    # FastAPI backend
 │   ├── app/
@@ -327,8 +429,96 @@ Menui/
 ├── Menui.xcodeproj/            # Xcode project files
 ├── PRD.md                      # Product requirements document
 ├── README.md                   # This file
+├── MENU_PARSER_ALGORITHM.md    # MenuParser technical documentation
+├── BACKEND_LOCAL_TESTING.md    # Guide for local backend testing
+├── TESTING_GUIDE.md            # MenuParser testing guide
 └── .gitignore
 ```
+
+---
+
+## MenuParser Algorithm
+
+Menui uses a sophisticated **spatial layout analysis** engine to understand menu structure, not just extract text. This goes far beyond simple OCR.
+
+### Key Capabilities
+
+1. **Multi-Column Detection**
+   - Automatically detects 2-column menus
+   - Handles centered single-column layouts
+   - Identifies visual "gutters" between columns
+
+2. **Price Anchor Strategy**
+   - Uses prices as reliable anchors to find dish names
+   - Scans horizontally and vertically to pair dishes with prices
+   - Handles dotted lines (e.g., "Burger ......... $12.99")
+
+3. **Burger Stack Grouping**
+   - Associates descriptions below dish names
+   - Uses spatial proximity and typography heuristics
+   - Handles pipe-separated ingredients (e.g., "wagyu beef | arugula | truffle aioli")
+
+4. **Section Detection**
+   - Identifies section headers (APPETIZERS, ENTREES, etc.)
+   - Groups items hierarchically under sections
+   - Extracts modifiers (Add-ons like "Extra cheese +$1.50")
+
+### Supported Menu Archetypes
+
+✅ **Dense List (Two-Column with Dotted Lines)**
+```
+APPETIZERS                ENTREES
+Nachos ......... $8.99    Burger ......... $12.99
+Wings .......... $9.99    Steak .......... $24.99
+```
+
+✅ **Minimalist (Centered, Pipe-Separated)**
+```
+              Artisan Burger
+      wagyu beef | arugula | truffle aioli
+                  $18.00
+```
+
+✅ **Boxed Grid (Bordered Sections)**
+```
+┌─────────────────┐
+│  LUNCH SPECIAL  │
+│  - Burrito      │
+│  - Tacos        │
+│  $6.99          │
+└─────────────────┘
+```
+
+### Output Format
+
+The MenuParser produces structured JSON:
+
+```json
+{
+  "menu_sections": [
+    {
+      "section_name": "Lunch Specials",
+      "items": [
+        {
+          "id": "item_a3f2e891",
+          "name": "Special Lunch No. 2",
+          "description": "One beef burrito, Mexican rice and refried beans",
+          "price": 6.75,
+          "tags": ["beef", "burrito", "rice", "beans"],
+          "modifiers": [
+            {
+              "text": "Add guacamole",
+              "price": 1.50
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+For technical details, see [MENU_PARSER_ALGORITHM.md](./MENU_PARSER_ALGORITHM.md).
 
 ---
 
@@ -401,12 +591,30 @@ X-Admin-Secret: your_admin_secret
 
 ## Development
 
-### Running Tests
+### Testing
 
-Currently, the project uses manual testing. Future versions will include:
-- Unit tests for dish parser logic
+The project includes comprehensive testing guides:
+
+- **MenuParser Testing**: See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for testing the spatial layout analysis
+- **Backend Testing**: See [BACKEND_LOCAL_TESTING.md](./BACKEND_LOCAL_TESTING.md) for local API testing
+- **Manual Testing**: Test with various menu types (see MenuParser section above)
+
+**Testing Checklist**:
+- ✅ Multi-column menu parsing
+- ✅ Centered layout detection
+- ✅ Price-dish pairing accuracy
+- ✅ Description association
+- ✅ Section header detection
+- ✅ JSON output validation
+- ✅ Scan history persistence
+- ✅ Rename functionality
+- ✅ Swipe-to-delete
+
+**Future Testing Improvements**:
+- Unit tests for MenuParser algorithm
 - Integration tests for API endpoints
 - UI tests for camera flow
+- Snapshot tests for different menu archetypes
 
 ### Code Style
 
@@ -528,19 +736,24 @@ SOFTWARE.
 
 ## Acknowledgments
 
-- **Apple Vision Framework** - Powerful on-device OCR capabilities
+- **Apple Vision Framework** - Powerful on-device OCR with spatial layout detection
+- **SwiftUI & SwiftData** - Modern declarative UI and native persistence
+- **AVFoundation** - Professional camera controls and ultra-wide lens support
 - **Google Custom Search API** - High-quality food image search
 - **FastAPI** - Modern, fast web framework for building APIs
-- **Upstash Redis** - Serverless Redis for caching
+- **Upstash Redis** - Serverless Redis for distributed caching
 - **Render.com** - Simple and reliable backend hosting
 
 ---
 
-## Links
+## Documentation
 
-- **Product Requirements:** See [PRD.md](./PRD.md) for detailed technical specifications
-- **Issues & Feedback:** [GitHub Issues](https://github.com/yourusername/menui/issues)
+- **[PRD.md](./PRD.md)** - Product requirements and technical specifications
+- **[MENU_PARSER_ALGORITHM.md](./MENU_PARSER_ALGORITHM.md)** - MenuParser spatial layout analysis documentation
+- **[BACKEND_LOCAL_TESTING.md](./BACKEND_LOCAL_TESTING.md)** - Guide for testing backend API locally
+- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - MenuParser testing guide with examples
 - **API Documentation:** https://menui-f9n2.onrender.com/docs (interactive Swagger UI)
+- **Issues & Feedback:** [GitHub Issues](https://github.com/yourusername/menui/issues)
 
 ---
 
