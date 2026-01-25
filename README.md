@@ -1,5 +1,9 @@
 # Menui
 
+<p align="center">
+  <img src="visuals/app-mockup.png" alt="Menui App Mockup" width="800">
+</p>
+
 iOS app that uses advanced OCR and spatial layout analysis to scan restaurant menus, parse menu structure, and display food images for each dish.
 
 **Tech Stack:** SwiftUI + FastAPI + Redis + Google Custom Search + Apple Vision Framework
