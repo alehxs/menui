@@ -20,10 +20,10 @@ struct HistoryView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "clock")
                             .font(.system(size: 60))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.primary)
                         Text("No scan history yet")
                             .font(.title2)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.primary)
                         Text("Scan a menu to get started")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
