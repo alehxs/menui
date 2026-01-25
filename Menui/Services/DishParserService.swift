@@ -21,6 +21,19 @@ class DishParserService {
 
             "garlic", "tomato", "basil", "arugula",
 
+            // Ingredient-only terms (not dish names)
+            "iberico", "bellota", "jamon iberico", "serrano", "prosciutto",
+            "evoo", "extra virgin", "olive oil",
+            "radicchio", "verjus", "anchoa", "sourdough",
+            "grana padano", "cured egg", "egg yolk",
+            "albonito", "heirloom", "arugula", "tomato sorbet",
+            "peach gelee", "cherry compote", "candied walnut",
+            "pain de mie", "toasted", "tuna tartare", "sweet shoyu",
+            "mirin", "chives", "manchego", "croquette", "serrano",
+            "calabrian chili", "aioli", "eel honey",
+            "angus beef", "caramelized onion", "aged cheddar", "mornay",
+            "confit", "pan con tomate", "de bellota",
+
             // Browser UI patterns
             "http", "www.", ".com", ".net", ".org",
             "bookmark", "favorites", "tab", "browser",
@@ -36,7 +49,13 @@ class DishParserService {
         "red ", "green ", "white ", "black ", "brown ",
         "beans ", "rice ", "cheese ", "sauce ", "cream ",
         "flour ", "corn ", "meat ", "chicken ", "beef ", "pork ",
-        "onions ", "tomatoes ", "peppers ", "a flat", "a crispy"
+        "onions ", "tomatoes ", "peppers ", "a flat", "a crispy",
+
+        // Ingredient-specific fragments (prevent ingredient lists from being dishes)
+        "iberico ", "bellota ", "serrano ", "evoo ", "radicchio ",
+        "verjus ", "anchoa ", "albonito ", "heirloom ",
+        "manchego ", "calabrian ", "aioli ", "angus ", "cheddar ",
+        "pan con "
     ]
 
     // Common descriptor/ingredient words that shouldn't dominate a dish name
@@ -163,8 +182,18 @@ class DishParserService {
             // Skip very long lines (likely descriptions)
             if trimmed.count > 45 { return nil }
 
-            // Skip lines with pipes
+            // Skip lines with pipes (ingredient separators)
             if trimmed.contains("|") { return nil }
+
+            // Skip lines with grade/quality markers (e.g., "5 J's", "A5", etc.)
+            if trimmed.contains("J's") || trimmed.contains("J'S") {
+                return nil
+            }
+
+            // Skip lines that look like ingredient lists (multiple items separated by |, &, or commas with "and")
+            if trimmed.contains(" | ") || (trimmed.contains(",") && trimmed.lowercased().contains(" and ")) {
+                return nil
+            }
 
             // Skip lines with periods in the middle (sentence fragments)
             if let dotIndex = trimmed.firstIndex(of: "."),
@@ -208,6 +237,21 @@ class DishParserService {
             // Skip cooking method descriptions
             if lower.hasPrefix("beef and") || lower.hasPrefix("chicken is") ||
                lower.hasPrefix("cooked with") {
+                return false
+            }
+
+            // Skip lines that are just ingredient specifications (not dish names)
+            // These often start with the ingredient type followed by preparation or source
+            let ingredientPrefixes = ["iberico de", "serrano ham", "prosciutto di",
+                                     "manchego cheese", "grana padano", "parmigiano",
+                                     "extra virgin", "olive oil", "balsamic"]
+            if ingredientPrefixes.contains(where: { lower.hasPrefix($0) }) {
+                return false
+            }
+
+            // Skip lines with quality/grade markers followed by descriptions
+            // Pattern: "Something 5 J's" or "Something A5" etc.
+            if lower.range(of: #"\d+\s*j'?s|\b[a-z]\d+\b"#, options: .regularExpression) != nil {
                 return false
             }
 
