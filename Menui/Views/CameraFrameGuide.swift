@@ -37,8 +37,7 @@ struct CameraFrameGuide: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.7))
-                        .cornerRadius(8)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 8))
                         .padding(.top, 60)
 
                     Spacer()
@@ -64,8 +63,7 @@ struct CameraFrameGuide: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(Color.black.opacity(0.7))
-                    .cornerRadius(8)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 8))
                     .padding(.bottom, 120)
                 }
             }

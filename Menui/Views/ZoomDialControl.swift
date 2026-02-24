@@ -48,9 +48,11 @@ struct ZoomDialControl: View {
     // MARK: - Preset Buttons View
 
     var presetButtonsView: some View {
-        HStack(spacing: 15) {
-            ForEach(presets, id: \.self) { level in
-                presetButton(for: level)
+        GlassEffectContainer {
+            HStack(spacing: 15) {
+                ForEach(presets, id: \.self) { level in
+                    presetButton(for: level)
+                }
             }
         }
     }
@@ -60,9 +62,9 @@ struct ZoomDialControl: View {
             .font(.system(size: 16, weight: .medium))
             .foregroundColor(isActiveZoom(level) ? .yellow : .white)
             .frame(width: 45, height: 32)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isActiveZoom(level) ? Color.white.opacity(0.3) : Color.clear)
+            .glassEffect(
+                isActiveZoom(level) ? .clear.interactive() : .identity,
+                in: .capsule
             )
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
@@ -107,14 +109,7 @@ struct ZoomDialControl: View {
         }
         .padding(.horizontal, 30)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.black.opacity(0.7))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
-        )
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
         .gesture(
             DragGesture()
                 .onChanged { value in

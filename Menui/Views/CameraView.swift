@@ -42,47 +42,43 @@ struct CameraView: View {
                 }
 
                 // Main control bar
-                HStack(spacing: 80) {
-                    // Photo library button (bottom left)
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 50, height: 50)
-                            .overlay(
-                                Image(systemName: "photo")
-                                    .foregroundColor(.white)
-                                    .font(.title2)
-                            )
-                    }
+                GlassEffectContainer {
+                    HStack(spacing: 80) {
+                        // Photo library button (bottom left)
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            Image(systemName: "photo")
+                                .foregroundColor(.white)
+                                .font(.title2)
+                                .frame(width: 50, height: 50)
+                                .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: 12))
+                        }
 
-                    // Capture button (center)
-                    Button {
-                        cameraManager.capturePhoto()
-                    } label: {
-                        Circle()
-                            .strokeBorder(.white, lineWidth: 4)
-                            .frame(width: 70, height: 70)
-                            .overlay(
-                                Circle()
-                                    .fill(.white)
-                                    .frame(width: 58, height: 58)
-                            )
-                    }
+                        // Capture button (center)
+                        Button {
+                            cameraManager.capturePhoto()
+                        } label: {
+                            Circle()
+                                .strokeBorder(.white, lineWidth: 4)
+                                .frame(width: 70, height: 70)
+                                .overlay(
+                                    Circle()
+                                        .fill(.white)
+                                        .frame(width: 58, height: 58)
+                                )
+                        }
 
-                    // Flash toggle button (bottom right)
-                    Button {
-                        cameraManager.toggleFlash()
-                    } label: {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 50, height: 50)
-                            .overlay(
-                                Image(systemName: cameraManager.isFlashEnabled ? "bolt.fill" : "bolt.slash.fill")
-                                    .foregroundColor(cameraManager.isFlashEnabled ? .yellow : .white)
-                                    .font(.title2)
-                            )
+                        // Flash toggle button (bottom right)
+                        Button {
+                            cameraManager.toggleFlash()
+                        } label: {
+                            Image(systemName: cameraManager.isFlashEnabled ? "bolt.fill" : "bolt.slash.fill")
+                                .foregroundColor(cameraManager.isFlashEnabled ? .yellow : .white)
+                                .font(.title2)
+                                .frame(width: 50, height: 50)
+                                .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: 12))
+                        }
+                        .opacity(capturedImage == nil ? 1 : 0)
                     }
-                    .opacity(capturedImage == nil ? 1 : 0)
                 }
                 .padding(.bottom, 50)
             }
